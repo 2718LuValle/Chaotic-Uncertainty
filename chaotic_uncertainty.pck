@@ -12,7 +12,8 @@ c("chaotic_uncertainty.pck", "superloopSP", "superloop2modSP",
 "predlik.test1", "predlik.sd1", "analog.llik.ecdf", "predlik.test", 
 "likelihood.compare.back.by.season.ecdf.rep", "likelihood.compare.back.ecdf", 
 "analog.llik", "ecdf.wt", "my.pair.loop.toty", "my.uberloop.totyL", 
-"my.overloopHF.totyL", "predlik.sd")
+"my.overloopHF.totyL", "predlik.sd", "lik.sn.summary2.twomodcSP1"
+)
 superloopSP <-
 function(n,modvec=c(1,2,10),y=3,cvar=c(1,2,3),odat1=Fsp.nat0full0plus,odat2=Hsp.nat0full0plus){
 likmat<-NULL
@@ -60,7 +61,7 @@ hawaii<-list(lik=likmatH,sd=sdmatH,P=PmatH,fdrout=fdrH.list,PadjmatH=v3,likdifH=
 list(Fresno=fresno, Hawaii=hawaii)
 }
 superloop2modSP <-
-function(n,mvec1=c(1,2,7,8,9),mvec2=c(1:6),y1=1,y2=1,cvec1=c(1:5),cvec2=c(1:6),odat1=Fsp.nat0full0plus,odat2=Hsp.nat0full0plus){
+function(n,mvec1=c(7,10,11),mvec2=c(7,8,9),y1=1,y2=1,cvec1=c(1:3),cvec2=c(1:3),odat1=Davissp.nat0full0plus,odat2=Davissp.nat0full0plus){
 likmat<-NULL
 likmat1<-NULL
 likmat2<-NULL
@@ -75,6 +76,8 @@ Hsdmat<-NULL
 Hfdr.list<-list()
 
 for(i in 1:n){
+print(paste("REPLICATION=",i))
+print(paste("REPLICATION=",i))
 psuedo.history.rep1<-my.uberloop.totysp(mvec1,odatA=odat1,odatB=odat2)
 psuedo.history.rep2<-my.uberloop.totysp(mvec2,odatA=odat1,odatB=odat2)
 dumH<-likelihood.compare.back.2mod.ecdf.by.season.rep(psuedo.history.rep1,psuedo.history.rep2,Fresno=F,xvar1=y1,xvar2=y2,xcvar1=cvec1,xcvar2=cvec2)
@@ -355,7 +358,7 @@ lines(c(18.5,18.5),c(-40,40),col=7)
 }
 }
 lik.sn.summary2.twomodcSP <-
-function(vec,title="",do.plot=T,Fresno=T,col.start=3,alpha=.05){
+function(vec,title="",do.plot=T,Fresno=T,col.start=3,alpha=.05,Fresno.title="Davis",Hawaii.title="Leaburg"){
 n1<-length(vec)
 llikmat<-NULL
 llikmat1<-NULL
@@ -368,10 +371,10 @@ for(i in 1:n1){
 	str0a<-eval(as.name(vec[i]))
 	if(Fresno){
 		str0<-str0a$Fresno
-		title<-paste(title,"Fresno")
+		#title<-paste(title,"Fresno")
 	}else{
 		str0<-str0a$Hawaii
-		title<-paste(title,"Hawaii")
+		#title<-paste(title,"Hawaii")
 	}
 	llikmat<-rbind(llikmat,str0$lik)
 	llikmat1<-rbind(llikmat1,str0$lik1)
@@ -384,8 +387,16 @@ for(i in 1:n1){
 	}
 	sdmat<-rbind(sdmat,str0$sd)
 	nloc<-length(str0$Padjmat[1,])
+print(dim(Padjmat))
+print(dim(str0$Padjmat))
 	Padjmat<-cbind(Padjmat,str0$Padjmat[,-nloc])
 }
+if(Fresno){
+		title<-paste(title,Fresno.title)
+	}else{
+		title<-paste(title,Hawaii.title)
+	}
+
 np<-length(original[,1])
 nsamp<-length(Padjmat[1,])
 vv0<-c(4,4,4,4,3,3,3,2,2,1)
@@ -394,10 +405,14 @@ print(dim(llikmat))
 mv1<-apply(llikmat,2,mean)
 mv2<-apply(llikmat1,2,mean)
 mv3<-apply(llikmat2,2,mean)
-
+#par(mfcol=c(2,2))
 zzline<-rep(0,40)
 sv1a<-apply(llikmat,2,sd)
 sv1b<-apply((sdmat^2),2,max)
+print(sv1a)
+plot(sv1a)
+print(sv1b)
+plot(sv1b)
 sv1<-sqrt((sv1a^2/nsamp+sv1b))
 qmul<-qt(1-alpha/2,nsamp-1)
 par(mfrow=c(floor(np/2+1),2))
@@ -407,6 +422,13 @@ for(i in 1:np){
 	fdr(original[i,],.1,F,do.plot,title)
 }
 }else{
+maxPstar<-NA
+np<-length(Padjmat[1,])
+for(i in 1:length(Padjmat[,1])){
+	if(sum((Padjmat[i,]<.1))==np){
+         maxPstar<-floor(1e4*max(Pstar))/1e4	
+	}
+}
 par(mfrow=c(2,1))
 plot(rep(c(1:40),2),c(mv2,mv3),type="n",xlab="sequence",ylab="likelihood",main=paste(title,"Raw likelihoods"))
 lines(c(1:40),mv2)
@@ -418,15 +440,15 @@ lines(c(20.5,20.5),c(-40,40),col=2)
 lines(c(30.5,30.5),c(-40,40),col=7)
 
 
-plot(rep(c(1:40),3),c(mv1,zzline+qmul*sv1,zzline-qmul*sv1),type="n",xlab="sequence",ylab="likelihood",main=paste(title,"max(P*)=",floor(1e4*max(Pstar))/1e4))
+plot(rep(c(1:40),3),c(mv1,zzline+qmul*sv1,zzline-qmul*sv1),type="n",xlab="sequence",ylab="likelihood",main=paste(title,"max(P*)=",maxPstar))
 lines(c(1:40),mv1)
 text(c(1:40),mv1,vv1)
-lines(c(1:40),zzline+qmul*sv1,col=2)
-lines(c(1:40),zzline-qmul*sv1,col=2)
+#lines(c(1:40),zzline+qmul*sv1,col=2)
+#lines(c(1:40),zzline-qmul*sv1,col=2)
 lines(c(1:40),mv1,col=col.start)
 text(c(1:40),mv1,vv1,col=col.start)
-lines(c(1:40),zzline+qmul*sv1,col=col.start+1)
-lines(c(1:40),zzline-qmul*sv1,col=col.start+1)
+#lines(c(1:40),zzline+qmul*sv1,col=col.start+1)
+#lines(c(1:40),zzline-qmul*sv1,col=col.start+1)
 
 vv1<-c(2,3,4,6,7,9)
 vv2<-c(vv1,vv1+10,vv1+20,vv1+30)
@@ -3014,7 +3036,7 @@ function(mat, thresh = .05)
         #       n1 <- length(val1)
         #       plot(c(1:n1), abs(val1), log = "y", xlab = "eigen rank", ylab
         #                = "log10 of value")
-        I1 <- val1 > thresh
+        I1 <- abs(val1) > thresh
         I3 <- is.na(I1)
         if(sum(I3) < 0.5) {
                 val2 <- val[I1]
@@ -3303,10 +3325,24 @@ function(v1,v2){
 v32<-v2-v1
 #print(rbind(v1,v2))
 v32acf<-acf(v32,plot=F)$acf
+##correlation matrix from acf??
 naa<-ceiling(sqrt(length(v32)))
 vv32a<-((var((v32))*(length(v32)-1)*c(1,2*cumsum(v32acf[-1][c(1:naa)]))))
+v77<-c(v32acf[-1][c(1:naa)])
+nbb<-naa+1
+n1<-length(v32)
+c1<-diag((n1+naa))
+for(j in 1:n1){
+c1[j,j+(1:naa)]<-v77
+c1[j+(1:naa),j]<-v77
+}
+c2<-gen.inv1(c1[1:n1,1:n1])
+v10<-t(c(rep(1,n1)))
+v20<-t(v10)
+df00<-v10%*%c2%*%v20
+df1<-min(df00,length(v32)-1)
 tv32<-sum(v32)/sqrt(max(vv32a))
-pv32<-2*(min(pt(tv32,length(v32)-1),1-pt(tv32,length(v32)-1)))
+pv32<-2*(min(pt(tv32,df1),1-pt(tv32,df1)))
 #pv32a<-wilcox.test(v32,alt="g")$p.val
 c(pv32)
 }
@@ -3322,6 +3358,12 @@ c(sd32)
 }
 analog.llik.ecdf <-
 function(x,dat,wt){
+#add in a backscale vector. Take CB*s0+mu0
+#s0 mu0 currently in solar notes for davis, leaburg
+# for precip CB[CB<0]<-0
+#also for P(>0)  i1<-(x1>0)
+#P<- sum(y1[i1])
+#ABOVE ARE ADD IN MODS FOR EXTRAP AND Pfor stock
 cdf<-ecdf.wt(dat,wt)
 x1<-cdf$x
 y1<-cdf$y
@@ -3330,6 +3372,7 @@ y1<-cdf$y
 #
 qval<-c(.001,.25,.5,.75,.999)
 cb<-approx(y1,x1,qval)$y
+#cb1<-cb*s0+mu0
 #print(cb)
 #print(qval)
 o1<-order(abs(x1-x))
@@ -3662,7 +3705,9 @@ function(nat.mat,ycola=1,vecsel,npred1,npred2,ysel=1,season.number){
 library(e1071)
 m1<-NULL
 m0<-NULL
-vec<-c(1:160)
+#vec<-c(1:160)
+#vec<-c(1:122) 
+vec<-c(1:112)
 par(mfrow=c(4,4))
 #for(i in 1:16){
 i<-1
@@ -3706,4 +3751,114 @@ naa<-ceiling(sqrt(length(v32)))
 vv32a<-((var((v32))*(length(v32)-1)*c(1,2*cumsum(v32acf[-1][c(1:naa)]))))
 sdv32<-sqrt(max(vv32a))
 sdv32
+}
+lik.sn.summary2.twomodcSP1 <-
+function(vec,title="",do.plot=T,Fresno=T,col.start=3,alpha=.05,Fresno.title="Davis",Hawaii.title="Leaburg"){
+n1<-length(vec)
+llikmat<-NULL
+llikmat1<-NULL
+llikmat2<-NULL
+Padjmat<-NULL
+sdmat<-NULL
+original<-NULL
+Pstar<-NULL
+for(i in 1:n1){
+	str0a<-eval(as.name(vec[i]))
+	if(Fresno){
+		str0<-str0a$Fresno
+		#title<-paste(title,"Fresno")
+	}else{
+		str0<-str0a$Hawaii
+		#title<-paste(title,"Hawaii")
+	}
+	llikmat<-rbind(llikmat,str0$lik)
+	llikmat1<-rbind(llikmat1,str0$lik1)
+      llikmat2<-rbind(llikmat2,str0$lik2)
+	n99<-length(str0$fdrout)
+	for(j in 1:n99){
+	original<-rbind(original,c(str0$fdrout[[j]]$original))
+	Pstar<-c(Pstar,str0$fdrout[[j]]$Pstar)
+	#print(attributes(str0$fdrout[[j]]))
+	}
+	sdmat<-rbind(sdmat,str0$sd)
+	nloc<-length(str0$Padjmat[1,])
+print(dim(Padjmat))
+print(dim(str0$Padjmat))
+	Padjmat<-cbind(Padjmat,str0$Padjmat[,-nloc])
+}
+if(Fresno){
+		title<-paste(title,Fresno.title)
+	}else{
+		title<-paste(title,Hawaii.title)
+	}
+
+np<-length(original[,1])
+nsamp<-length(Padjmat[1,])
+vv0<-c(4,4,4,4,3,3,3,2,2,1)
+vv1<-rep(vv0,4)
+print(dim(llikmat))
+mv1<-apply(llikmat,2,mean)
+mv2<-apply(llikmat1,2,mean)
+mv3<-apply(llikmat2,2,mean)
+#par(mfcol=c(2,2))
+zzline<-rep(0,40)
+sv1a<-apply(llikmat,2,sd)
+sv1b<-apply((sdmat^2),2,max)
+print(sv1a)
+plot(sv1a)
+print(sv1b)
+plot(sv1b)
+sv1<-sqrt((sv1a^2/nsamp+sv1b))
+qmul<-qt(1-alpha/2,nsamp-1)
+par(mfrow=c(floor(np/2+1),2))
+
+if(do.plot){
+for(i in 1:np){
+	fdr(original[i,],.1,F,do.plot,title)
+}
+}else{
+maxPstar<-NA
+np<-length(Padjmat[1,])
+for(i in 1:length(Padjmat[,1])){
+	if(sum((Padjmat[i,]<.1))==np){
+         maxPstar<-floor(1e4*max(Pstar))/1e4	
+	}
+}
+par(mfrow=c(1,1))
+#plot(rep(c(1:40),2),c(mv2,mv3),type="n",xlab="sequence",ylab="likelihood",main=paste(title,"Raw likelihoods"))
+#lines(c(1:40),mv2)
+#text(c(1:40),mv2,vv1)
+#lines(c(1:40),mv3,col=2)
+#text(c(1:40),mv3,vv1,col=2)
+#lines(c(10.5,10.5),c(-40,40),col=3)
+#lines(c(20.5,20.5),c(-40,40),col=2)
+#lines(c(30.5,30.5),c(-40,40),col=7)
+
+
+plot(rep(c(1:40),3),c(mv1,zzline+qmul*sv1,zzline-qmul*sv1),type="n",xlab="sequence",ylab="likelihood",main=paste(title,"max(P*)=",maxPstar))
+lines(c(1:40),mv1)
+text(c(1:40),mv1,vv1)
+#lines(c(1:40),zzline+qmul*sv1,col=2)
+#lines(c(1:40),zzline-qmul*sv1,col=2)
+lines(c(1:40),mv1,col=col.start)
+text(c(1:40),mv1,vv1,col=col.start)
+#lines(c(1:40),zzline+qmul*sv1,col=col.start+1)
+#lines(c(1:40),zzline-qmul*sv1,col=col.start+1)
+
+vv1<-c(2,3,4,6,7,9)
+vv2<-c(vv1,vv1+10,vv1+20,vv1+30)
+np<-length(Padjmat[1,])
+for(i in 1:length(Padjmat[,1])){
+	if(sum((Padjmat[i,]<.1))==np){
+#print(Padjmat[i,])
+		text(i,mv1[i],"X",col=2)
+	}
+}
+
+lines(c(10.5,10.5),c(-20,20),col=3)
+lines(c(20.5,20.5),c(-20,20),col=2)
+lines(c(30.5,30.5),c(-20,20),col=7)
+lines(c(0,40),c(0,0),col=4)
+}
+
 }
